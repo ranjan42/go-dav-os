@@ -1,0 +1,38 @@
+name: Build & QEMU smoke test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build toolchain image
+        run: docker build --platform=linux/amd64 -t go-dav-os-toolchain .
+
+      - name: Build ISO inside container
+        run: |
+          docker run --rm --platform=linux/amd64 \
+            -v "$PWD":/work -w /work \
+            go-dav-os-toolchain \
+            make
+      - name: Smoke test with QEMU (headless)
+        run: |
+          docker run --rm --platform=linux/amd64 \
+            -v "$PWD":/work -w /work \
+            go-dav-os-toolchain \
+            timeout 20s qemu-system-i386 \
+              -cdrom build/dav-go-os.iso \
+              -nographic -serial mon:stdio \
+              -no-reboot -no-shutdown
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dav-go-os-iso
+          path: build/dav-go-os.iso
