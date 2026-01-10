@@ -40,11 +40,13 @@ Goal: `GOARCH=amd64`
     *   Update `linker.ld` to output `elf64-x86-64` and handle 64-bit sections.
 
 2.  **Entry Point**:
-    *   Update `boot.s` to pass Multiboot info pointer in a 64-bit register (e.g., `rdi` for C ABI or stack depending on Go ABI).
-    *   Update `kernel.Main` signature in `kernel/kernel.go`:
+    *   **Assembly Stub Contract**: Since we use a custom runtime, the entry point contract must be explicitly defined.
+    *   Create a 64-bit assembly stub in `boot.s` (or `entry64.s`) to setup the stack and registers.
+    *   The stub effectively defines the calling convention for jumping into Go.
+    *   Update `kernel.Main` signature in `kernel/kernel.go` to match this contract:
         ```go
         // from func Main(addr uint32)
-        func Main(addr uint64) // or uintptr
+        func Main(addr uint64) // Argument passed from asm stub (e.g. in RDI or on stack)
         ```
 
 3.  **Memory Management (`mem/`)**:
