@@ -2,6 +2,7 @@ package kernel
 
 import (
 	"github.com/dmarro89/go-dav-os/fs"
+	"github.com/dmarro89/go-dav-os/kernel/scheduler"
 	"github.com/dmarro89/go-dav-os/keyboard"
 	"github.com/dmarro89/go-dav-os/mem"
 	"github.com/dmarro89/go-dav-os/shell"
@@ -32,6 +33,10 @@ func Main(multibootInfoAddr uint32) {
 	mem.InitMultiboot(multibootInfoAddr)
 	mem.InitPFA()
 
+	scheduler.Init()
+	scheduler.NewTask(taskA)
+	scheduler.NewTask(taskB)
+
 	fs.Init()
 
 	EnableInterrupts()
@@ -46,5 +51,21 @@ func Main(multibootInfoAddr uint32) {
 			continue
 		}
 		shell.FeedRune(r)
+	}
+}
+
+func taskA() {
+	for {
+		terminal.Print("A")
+		for i := 0; i < 1000000; i++ {
+		}
+	}
+}
+
+func taskB() {
+	for {
+		terminal.Print("B")
+		for i := 0; i < 1000000; i++ {
+		}
 	}
 }
