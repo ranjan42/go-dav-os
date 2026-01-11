@@ -27,6 +27,7 @@ func SetTickProvider(fn func() uint64) { getTicks = fn }
 
 func Init() {
 	lineLen = 0
+	terminal.Print("Welcome to " + osName + " " + osVersion + "\n")
 	terminal.Print(prompt)
 }
 
