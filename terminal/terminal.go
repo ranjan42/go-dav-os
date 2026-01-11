@@ -3,6 +3,7 @@ package terminal
 import "unsafe"
 
 func outb(port uint16, value byte)
+func debugChar(c byte)
 
 const (
 	VGAWidth  = 80
@@ -77,6 +78,8 @@ func putRune(ch rune) {
 
 	vidMem[row][column][0] = byte(ch)
 	vidMem[row][column][1] = color
+
+	debugChar(byte(ch))
 
 	column++
 	if column >= VGAWidth {

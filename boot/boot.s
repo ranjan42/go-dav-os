@@ -258,6 +258,15 @@ github_0com_1dmarro89_1go_x2ddav_x2dos_1terminal.outb:
 	ret
 .size github_0com_1dmarro89_1go_x2ddav_x2dos_1terminal.outb, . - github_0com_1dmarro89_1go_x2ddav_x2dos_1terminal.outb
 
+# github.com/dmarro89/go-dav-os/terminal.debugChar(c byte)
+.global github_0com_1dmarro89_1go_x2ddav_x2dos_1terminal.debugChar
+.type   github_0com_1dmarro89_1go_x2ddav_x2dos_1terminal.debugChar, @function
+github_0com_1dmarro89_1go_x2ddav_x2dos_1terminal.debugChar:
+    mov 4(%esp), %eax
+    outb %al, $0xe9
+    ret
+.size github_0com_1dmarro89_1go_x2ddav_x2dos_1terminal.debugChar, . - github_0com_1dmarro89_1go_x2ddav_x2dos_1terminal.debugChar
+
 # void go_0kernel.LoadIDT(uint32 *idtr)
 .global go_0kernel.LoadIDT
 .type   go_0kernel.LoadIDT, @function
