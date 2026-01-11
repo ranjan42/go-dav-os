@@ -22,8 +22,10 @@ def main():
         os.remove(log_file)
         
     print(f"Starting QEMU verification for {iso_path}...")
+    print(f"Log file: {log_file}")
     
     # Run QEMU with debugcon logging to file and monitor on stdio
+    # CRITIAL: We use 'file:qemu.log' to capture 0xE9 port output. 
     cmd = [
         "qemu-system-i386",
         "-cdrom", iso_path,
@@ -47,6 +49,13 @@ def main():
         print("Waiting for boot prompt...")
         if not check_log_for("DavOS", log_file, timeout=10):
             print("ERROR: Timeout waiting for DavOS prompt.")
+            print("--- qemu.log content ---")
+            if os.path.exists(log_file):
+                with open(log_file, 'r', errors='ignore') as f:
+                    print(f.read())
+            else:
+                print("qemu.log file not found.")
+            print("------------------------")
             sys.exit(1)
         print("Boot successful.")
         
