@@ -30,9 +30,9 @@ def main():
         "qemu-system-i386",
         "-cdrom", iso_path,
         "-debugcon", f"file:{log_file}",
+        "-serial", "none",
         "-monitor", "stdio",
-        "-display", "none",
-        "-nographic" 
+        "-display", "none"
     ]
     
     # Start QEMU process
