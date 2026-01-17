@@ -92,7 +92,7 @@ func execute() {
 	// when the buffer is full.
 	histLen := end - start
 	if histLen > 0 {
-		// duplicat check
+		// duplicate check
 		isDuplicate := false
 		if historyCount > 0 {
 			lastIdx := (historyHead - 1 + maxHistory) % maxHistory
