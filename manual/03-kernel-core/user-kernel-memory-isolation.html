@@ -1,0 +1,871 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://dmarro89.github.io/go-dav-os/manual/03-kernel-core/user-kernel-memory-isolation.html">
+      
+      
+        <link rel="prev" href="syscall-entry-and-abi.html">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>User/Kernel Memory Isolation - Go DAV OS</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#userkernel-memory-isolation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../index.html" title="Go DAV OS" class="md-header__button md-logo" aria-label="Go DAV OS" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Go DAV OS
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              User/Kernel Memory Isolation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../index.html" title="Go DAV OS" class="md-nav__button md-logo" aria-label="Go DAV OS" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Go DAV OS
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00-introduction/index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00-introduction/glossary.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-overview/architecture.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-boot/boot-and-grub.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Boot & GRUB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-boot/linker-and-initial-memory-layout.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory Layout
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="privilege-transition-gdt-tss-rsp0.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Privilege Transition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="syscall-entry-and-abi.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Syscall Entry And ABI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User/Kernel Memory Isolation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="user-kernel-memory-isolation.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User/Kernel Memory Isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-security-goal-current-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Security goal (current scope)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-virtual-address-layout-used-today" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Virtual address layout used today
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-how-paging-is-built" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. How paging is built
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-user-program-mapping-and-launch-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. User program mapping and launch path
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-fault-path-for-illegal-user-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Fault path for illegal user access
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-automated-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Automated verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-what-this-isolation-guarantees-and-what-it-does-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. What this isolation guarantees (and what it does not)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-next-hardening-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Next hardening steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-security-goal-current-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Security goal (current scope)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-virtual-address-layout-used-today" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Virtual address layout used today
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-how-paging-is-built" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. How paging is built
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-user-program-mapping-and-launch-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. User program mapping and launch path
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-fault-path-for-illegal-user-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Fault path for illegal user access
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-automated-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Automated verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-what-this-isolation-guarantees-and-what-it-does-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. What this isolation guarantees (and what it does not)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-next-hardening-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Next hardening steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="userkernel-memory-isolation">User/Kernel Memory Isolation</h1>
+<p>This page explains how memory isolation is currently implemented between ring3 user code and ring0 kernel code in <code>go-dav-os</code>.</p>
+<p>It focuses on the actual implementation in:</p>
+<ul>
+<li><code>boot/boot.s</code> (early page table build)</li>
+<li><code>boot/stubs_amd64.s</code> (user entry plumbing, #PF stub)</li>
+<li><code>user/hello.s</code> (user payload and kernel-access probes)</li>
+<li><code>kernel/task_runner.go</code> (program dispatch to user virtual addresses)</li>
+<li><code>kernel/idt.go</code> (page-fault gate installation)</li>
+<li><code>scripts/test_boot.py</code> (automated verification)</li>
+</ul>
+<h2 id="1-security-goal-current-scope">1. Security goal (current scope)</h2>
+<p>Current target:</p>
+<ul>
+<li>ring3 code can execute only from explicitly user-mapped pages</li>
+<li>ring3 reads/writes to kernel-mapped pages must fault</li>
+<li>kernel remains mapped in the same address space for kernel-mode execution</li>
+</ul>
+<p>Out of scope (for now):</p>
+<ul>
+<li>per-process page tables</li>
+<li>process-to-process isolation</li>
+<li>demand paging / copy-on-write</li>
+</ul>
+<h2 id="2-virtual-address-layout-used-today">2. Virtual address layout used today</h2>
+<p>The boot code defines a dedicated user virtual window:</p>
+<ul>
+<li><code>USER_VA_BASE = 0x40000000</code></li>
+<li>user window size: 8 KiB (<code>0x40000000 .. 0x40002000</code>)</li>
+</ul>
+<p>Mapped pages:</p>
+<ul>
+<li><code>0x40000000</code>: user program page (<code>.user_prog</code>)</li>
+<li><code>0x40001000</code>: user stack page (RW)</li>
+</ul>
+<p>Everything else in the 0..4 GiB identity map is kept supervisor-only.</p>
+<h2 id="3-how-paging-is-built">3. How paging is built</h2>
+<p>In <code>setup_long_mode</code> (<code>boot/boot.s</code>):</p>
+<ol>
+<li>Identity-map 0..4 GiB with 2 MiB pages (<code>pd0..pd3</code>).</li>
+<li>Kernel identity mappings use flags <code>present|rw|ps</code> (<code>0x83</code>), so <code>U/S=0</code>.</li>
+<li>Keep one user-capable walk path only where needed:</li>
+<li><code>pml4[0]</code> has <code>U/S=1</code></li>
+<li><code>pdpt[1]</code> has <code>U/S=1</code> (contains user window)</li>
+<li>Replace <code>pd1[0]</code> with a 4 KiB page table (<code>pt_user</code>).</li>
+<li>Fill <code>pt_user</code> entries:</li>
+<li>program page: <code>present|user</code> (<code>0x05</code>, read-only)</li>
+<li>stack page: <code>present|rw|user</code> (<code>0x07</code>)</li>
+</ol>
+<p>Result:</p>
+<ul>
+<li>kernel image and kernel data remain mapped and usable in ring0</li>
+<li>ring3 cannot access kernel identity pages because <code>U/S=0</code> on kernel mappings</li>
+</ul>
+<h2 id="4-user-program-mapping-and-launch-path">4. User program mapping and launch path</h2>
+<p><code>user/hello.s</code> places user payload in a page-aligned <code>.user_prog</code> section and exports:</p>
+<ul>
+<li><code>go_0kernel.userHelloStart</code></li>
+<li><code>go_0kernel.userProbeReadKernelStart</code></li>
+<li><code>go_0kernel.userProbeWriteKernelStart</code></li>
+<li><code>__user_program_page</code></li>
+</ul>
+<p><code>boot/stubs_amd64.s</code> computes user virtual entry points by:</p>
+<ul>
+<li>taking symbol offset from <code>__user_program_page</code></li>
+<li>adding it to <code>USER_VA_BASE</code></li>
+</ul>
+<p>This keeps runtime entry addresses in the user VA window even though payload bytes are linked into the kernel image physically.</p>
+<p>User-mode <code>SYS_WRITE</code> and <code>SYS_EXIT</code> then flow through the syscall entry stub in <code>boot/stubs_amd64.s</code> and the Go dispatcher in <code>kernel/syscall/</code>.</p>
+<p><code>SYS_WRITE</code> validates user buffers against the static user VA window before reading them, clamps each request to 4 KiB, and copies bytes into a kernel-owned buffer before printing.</p>
+<p><code>kernel/task_runner.go</code> then dispatches:</p>
+<ul>
+<li><code>run hello</code> -&gt; normal user syscall demo (<code>syscall</code> entry, <code>SYS_WRITE</code>, <code>SYS_EXIT</code>)</li>
+<li><code>run kread</code> -&gt; intentional ring3 read from kernel address</li>
+<li><code>run kwrite</code> -&gt; intentional ring3 write to kernel address</li>
+</ul>
+<p>All are launched with <code>ExecuteUserTask(rip, rsp)</code> and <code>rsp = 0x40002000</code> (top of mapped user stack page).</p>
+<h2 id="5-fault-path-for-illegal-user-access">5. Fault path for illegal user access</h2>
+<p>Illegal ring3 access to a supervisor page raises <code>#PF</code>.</p>
+<p>Implementation:</p>
+<ul>
+<li><code>boot/stubs_amd64.s</code> provides <code>PFaultStub</code> and emits <code>PF</code> on debug port <code>0xE9</code></li>
+<li><code>kernel/idt.go</code> installs vector <code>0x0E</code> with <code>getPFaultStubAddr()</code></li>
+<li><code>kernel/syscall/</code> remains unchanged by the fault itself because the violation is trapped before any user pointer is accepted as trusted kernel memory</li>
+</ul>
+<p>This gives an unambiguous marker in QEMU debug logs when isolation works as intended.</p>
+<h2 id="6-automated-verification">6. Automated verification</h2>
+<p><code>scripts/test_boot.py</code> now includes dedicated probes:</p>
+<ul>
+<li>boot VM + run <code>kread</code> + expect <code>PF</code></li>
+<li>boot VM + run <code>kwrite</code> + expect <code>PF</code></li>
+</ul>
+<p>Each probe runs in its own QEMU instance because fault handling is terminal in the current setup.</p>
+<h2 id="7-what-this-isolation-guarantees-and-what-it-does-not">7. What this isolation guarantees (and what it does not)</h2>
+<p>Guaranteed now:</p>
+<ul>
+<li>ring3 cannot directly read/write kernel identity mappings</li>
+<li>kernel remains mapped and fully accessible in ring0</li>
+<li>user entry and user stack are explicit user pages</li>
+</ul>
+<p>Not guaranteed yet:</p>
+<ul>
+<li>independent page tables per process</li>
+<li>isolated user address spaces between different tasks</li>
+<li>user-mode recovery from page faults (current #PF path halts)</li>
+</ul>
+<h2 id="8-next-hardening-steps">8. Next hardening steps</h2>
+<p>Practical next steps if you want stronger isolation:</p>
+<ol>
+<li>Allocate separate user page tables per task/process.</li>
+<li>Add a recoverable user <code>#PF</code> path (kill task, keep kernel alive).</li>
+<li>Move from static user pages to allocator-backed mappings.</li>
+<li>Grow syscall pointer validation beyond the current static user window when per-task mappings are introduced.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
